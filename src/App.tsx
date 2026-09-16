@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   ArrowRight,
   Check,
@@ -116,6 +116,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortOrder, setSortOrder] = useState("featured")
   const [wishlist, setWishlist] = useState<string[]>([])
+
+  useEffect(() => {
+    document.title = cartOpen ? "Your kit" : "Relay Supply"
+  }, [cartOpen])
 
   const visibleProducts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase()
