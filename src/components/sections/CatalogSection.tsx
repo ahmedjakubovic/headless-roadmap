@@ -16,11 +16,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 type CatalogSectionProps = {
   categories: readonly string[]
   products: Product[]
-  visibleProducts: Product[]
+  filteredProducts: Product[]
   activeCategory: string
   onActiveCategoryChange: (category: string) => void
-  searchQuery: string
-  onSearchQueryChange: (value: string) => void
+  searchTerm: string
+  onSearchTermChange: (value: string) => void
   inStockOnly: boolean
   onInStockOnlyChange: (value: boolean) => void
   lowStockOnly: boolean
@@ -41,11 +41,11 @@ type CatalogSectionProps = {
 function CatalogSection({
   categories,
   products,
-  visibleProducts,
+  filteredProducts,
   activeCategory,
   onActiveCategoryChange,
-  searchQuery,
-  onSearchQueryChange,
+  searchTerm,
+  onSearchTermChange,
   inStockOnly,
   onInStockOnlyChange,
   lowStockOnly,
@@ -74,22 +74,6 @@ function CatalogSection({
             <SlidersHorizontal className="h-4 w-4 text-zinc-500" />
           </CardHeader>
           <CardContent className="grid gap-6">
-            <div className="grid gap-2">
-              <Label htmlFor="catalog-search">Search catalog</Label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                <Input
-                  id="catalog-search"
-                  className="pl-9"
-                  placeholder="Try keyboard..."
-                  value={searchQuery}
-                  onChange={(event) => onSearchQueryChange(event.target.value)}
-                />
-              </div>
-            </div>
-
-            <Separator />
-
             <div className="grid gap-3">
               <Label>Availability</Label>
               <label className="flex cursor-pointer items-center gap-3 text-sm text-zinc-300">
@@ -173,7 +157,22 @@ function CatalogSection({
             <p className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300"><LayoutGrid className="h-3.5 w-3.5" /> Curated hardware</p>
             <h2 className="text-3xl font-bold tracking-tight text-zinc-50">The daily setup</h2>
           </div>
-          <p className="text-sm text-zinc-500">{visibleProducts.length} of {products.length} pieces</p>
+          <p className="text-sm text-zinc-500">{filteredProducts.length} of {products.length} pieces</p>
+        </div>
+
+        <div className="mb-7 grid gap-2">
+          <Label htmlFor="product-search">Produkte suchen</Label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            <Input
+              id="product-search"
+              type="search"
+              className="pl-9"
+              placeholder="Produkte suchen..."
+              value={searchTerm}
+              onChange={(event) => onSearchTermChange(event.target.value)}
+            />
+          </div>
         </div>
 
         <Tabs value={activeCategory} onValueChange={onActiveCategoryChange}>
@@ -190,9 +189,9 @@ function CatalogSection({
 
           {categories.map((category) => (
             <TabsContent key={category} value={category}>
-              {visibleProducts.length > 0 ? (
+              {filteredProducts.length > 0 ? (
                 <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {visibleProducts.map((product) => (
+                  {filteredProducts.map((product) => (
                     <ProductCard
                       key={product.id}
                       product={product}
@@ -207,8 +206,8 @@ function CatalogSection({
                   <CardContent className="grid place-items-center gap-3 py-16 text-center">
                     <Search className="h-8 w-8 text-zinc-600" />
                     <div>
-                      <p className="font-semibold text-zinc-200">No signal found</p>
-                      <p className="mt-1 text-sm text-zinc-500">Try another search or open up the filters.</p>
+                      <p className="font-semibold text-zinc-200">Keine Produkte gefunden.</p>
+                      <p className="mt-1 text-sm text-zinc-500">Versuche einen anderen Suchbegriff.</p>
                     </div>
                     <Button variant="outline" size="sm" onClick={onResetFilters}>Reset filters</Button>
                   </CardContent>

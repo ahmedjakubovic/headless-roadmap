@@ -13,7 +13,7 @@ import { TooltipProvider } from "./components/ui/tooltip"
 const products: Product[] = [
   {
     id: "orbit-75",
-    title: "Orbit 75",
+    title: "Orbit 75 Keyboard",
     category: "Input",
     price: 189,
     description: "A compact mechanical keyboard with a quiet, tactile pulse.",
@@ -26,7 +26,7 @@ const products: Product[] = [
   },
   {
     id: "vector-pro",
-    title: "Vector Pro",
+    title: "Vector Pro Mouse",
     category: "Input",
     price: 99,
     description: "A balanced wireless mouse tuned for long sessions.",
@@ -39,7 +39,7 @@ const products: Product[] = [
   },
   {
     id: "frame-27",
-    title: "Frame 27",
+    title: "Frame 27 Monitor",
     category: "Display",
     price: 349,
     description: "A color-accurate 4K panel for work that needs room.",
@@ -52,7 +52,7 @@ const products: Product[] = [
   },
   {
     id: "echo-studio",
-    title: "Echo Studio",
+    title: "Echo Studio Headphones",
     category: "Audio",
     price: 149,
     description: "Open-back headphones that leave space for your best work.",
@@ -86,7 +86,7 @@ function App() {
   const [inStockOnly, setInStockOnly] = useState(false)
   const [lowStockOnly, setLowStockOnly] = useState(false)
   const [maxPrice, setMaxPrice] = useState([349])
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
   const [sortOrder, setSortOrder] = useState("featured")
   const [wishlist, setWishlist] = useState<string[]>([])
 
@@ -94,13 +94,13 @@ function App() {
     document.title = cartOpen ? "Your kit" : "Relay Supply"
   }, [cartOpen])
 
-  const visibleProducts = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase()
+  const filteredProducts = useMemo(() => {
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase()
     const maxPriceValue = maxPrice[0] ?? 349
 
     return products
+      .filter((product) => product.title.toLowerCase().includes(normalizedSearchTerm))
       .filter((product) => activeCategory === "All" || product.category === activeCategory)
-      .filter((product) => !normalizedQuery || `${product.title} ${product.category}`.toLowerCase().includes(normalizedQuery))
       .filter((product) => !inStockOnly || product.stock > 0)
       .filter((product) => !lowStockOnly || product.stock <= 8)
       .filter((product) => product.price <= maxPriceValue)
@@ -110,7 +110,7 @@ function App() {
         if (sortOrder === "rating") return secondProduct.rating - firstProduct.rating
         return secondProduct.reviews - firstProduct.reviews
       })
-  }, [activeCategory, inStockOnly, lowStockOnly, maxPrice, searchQuery, sortOrder])
+  }, [activeCategory, inStockOnly, lowStockOnly, maxPrice, searchTerm, sortOrder])
 
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0)
   const cartSubtotal = cartItems.reduce(
@@ -146,7 +146,7 @@ function App() {
   }
 
   function resetFilters() {
-    setSearchQuery("")
+    setSearchTerm("")
     setInStockOnly(false)
     setLowStockOnly(false)
     setMaxPrice([349])
@@ -173,11 +173,11 @@ function App() {
         <CatalogSection
           categories={categories}
           products={products}
-          visibleProducts={visibleProducts}
+          filteredProducts={filteredProducts}
           activeCategory={activeCategory}
           onActiveCategoryChange={setActiveCategory}
-          searchQuery={searchQuery}
-          onSearchQueryChange={setSearchQuery}
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
           inStockOnly={inStockOnly}
           onInStockOnlyChange={setInStockOnly}
           lowStockOnly={lowStockOnly}
