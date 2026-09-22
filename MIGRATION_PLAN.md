@@ -95,21 +95,23 @@ src/
 6. Update `package.json` scripts/config, `tsconfig.app.json`, `.gitignore`, `eslint.config.js`
 7. Create `src/router.tsx`, `src/routes/__root.tsx`, `src/routes/index.tsx`; delete `index.html`, `src/main.tsx`, `src/App.tsx`
 8. `pnpm exec prisma init --datasource-provider sqlite --output ../generated/prisma`, add `Product` model, `pnpm exec prisma migrate dev --name init` (creates `dev.db` + generates client), add `src/lib/prisma.ts`
-9. Wire Pacer + Hotkeys (see §6)
-10. Verify (see §7), fix any issues, commit on `tanstack-start-migration` via `but commit` (commit message proposal: `feat: migrate from Vite to TanStack Start with Prisma/SQLite foundation`)
+9. Install Pacer + Hotkeys as dependencies only — do NOT wire any behavior (see §6)
+10. Verify (see §7), fix any issues, commit on the `tanstack-start-migration` branch with plain git (message proposal: `feat: migrate from Vite to TanStack Start with Prisma/SQLite foundation`)
 
-## 6. Pacer & Hotkeys wiring (minimal, behavior-preserving)
+## 6. Pacer & Hotkeys: install only — do NOT change behavior
 
-- **Pacer:** `useDebouncer` from `@tanstack/react-pacer` debounces the catalog search filter (~300 ms). Same visual result, canonical Pacer use case. (Fallback if you'd rather touch nothing: install + `PacerProvider` at root only.)
-- **Hotkeys:** `useHotkey('Mod+K', ...)` from `@tanstack/react-hotkeys` focuses the existing `#product-search` input. Additive only; no behavior change otherwise.
-- No devtools panels will be added (keeps the footprint minimal).
+- **Pacer (`@tanstack/react-pacer`) and Hotkeys (`@tanstack/react-hotkeys`) are added as dependencies only.**
+- **Do NOT debounce/throttle existing handlers and do NOT register any keyboard shortcut** unless the original app already had one. This app had neither, so there is no `useDebouncedValue` and no `useHotkey` call anywhere in `src/`.
+- The original app filtered products instantly on every keystroke and had no keybinds; that behavior is preserved exactly.
+- An earlier pass added a 300 ms search debounce and a `Mod+K` shortcut; both were reverted (see §10, finding 12).
+- No devtools panels added.
 
 ## 7. Verification plan
 
 - `pnpm dev` → http://localhost:3000 renders the Products page with mock data, Tailwind styles, shadcn components (tabs, slider, popover, tooltip…)
 - `pnpm build` succeeds; `pnpm typecheck` clean; `pnpm lint` clean
 - `pnpm exec prisma validate` + generated client exists; `pnpm exec prisma migrate dev` applied to `dev.db`
-- `Mod+K` focuses the search input; typing filters products (debounced)
+- No new hotkeys and no debounce: typing filters products instantly (as in the original), and there is no `Mod+K` shortcut
 - Confirm no leftover Vite-SPA artifacts (`index.html`, `main.tsx`, `preview` script, `package-lock.json`)
 
 ## 8. Out of scope (explicitly, per request)
@@ -173,6 +175,9 @@ unchanged. The result must be the same app, now running on Start.
 
 DO NOT implement: Shopify, API fetching, TanStack Query, server functions, auth,
 database-to-UI wiring, product detail/$productId routes, loaders, search params, cart.
+DO NOT add keyboard shortcuts, and DO NOT debounce/throttle existing handlers. Install
+Pacer and Hotkeys as dependencies only and leave them unused unless the original app
+already used them.
 
 ALSO INCLUDE: Prisma + SQLite as a foundation only (installed, configured, schema +
 migration + generated client + a lib/prisma.ts singleton), NOT wired into the UI.
