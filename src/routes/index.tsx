@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react"
+import { createFileRoute } from "@tanstack/react-router"
+import { useDebouncedValue } from "@tanstack/react-pacer"
+import { useHotkey } from "@tanstack/react-hotkeys"
 import { Headphones, Keyboard, Monitor, Mouse } from "lucide-react"
-import type { Product } from "./components/ProductCard/ProductCard"
-import AppFooter from "./components/layout/AppFooter"
-import AppHeader from "./components/layout/AppHeader"
-import AppLayout from "./components/layout/AppLayout"
-import CatalogSection from "./components/sections/CatalogSection"
-import FieldNotesSection from "./components/sections/FieldNotesSection"
-import FreeDispatchAlert from "./components/sections/FreeDispatchAlert"
-import HeroSection from "./components/sections/HeroSection"
-import { TooltipProvider } from "./components/ui/tooltip"
+import type { Product } from "../components/ProductCard/ProductCard"
+import AppFooter from "../components/layout/AppFooter"
+import AppHeader from "../components/layout/AppHeader"
+import AppLayout from "../components/layout/AppLayout"
+import CatalogSection from "../components/sections/CatalogSection"
+import FieldNotesSection from "../components/sections/FieldNotesSection"
+import FreeDispatchAlert from "../components/sections/FreeDispatchAlert"
+import HeroSection from "../components/sections/HeroSection"
+import { TooltipProvider } from "../components/ui/tooltip"
 
 const products: Product[] = [
   {
@@ -90,12 +93,22 @@ function App() {
   const [sortOrder, setSortOrder] = useState("featured")
   const [wishlist, setWishlist] = useState<string[]>([])
 
+  const [debouncedSearchTerm] = useDebouncedValue(searchTerm, { wait: 300 })
+
+  useHotkey("Mod+K", () => {
+    const searchInput = document.getElementById("product-search")
+    if (searchInput instanceof HTMLInputElement) {
+      searchInput.focus()
+      searchInput.select()
+    }
+  })
+
   useEffect(() => {
     document.title = cartOpen ? "Your kit" : "Relay Supply"
   }, [cartOpen])
 
   const filteredProducts = useMemo(() => {
-    const normalizedSearchTerm = searchTerm.trim().toLowerCase()
+    const normalizedSearchTerm = debouncedSearchTerm.trim().toLowerCase()
     const maxPriceValue = maxPrice[0] ?? 349
 
     return products
@@ -110,7 +123,7 @@ function App() {
         if (sortOrder === "rating") return secondProduct.rating - firstProduct.rating
         return secondProduct.reviews - firstProduct.reviews
       })
-  }, [activeCategory, inStockOnly, lowStockOnly, maxPrice, searchTerm, sortOrder])
+  }, [activeCategory, debouncedSearchTerm, inStockOnly, lowStockOnly, maxPrice, sortOrder])
 
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0)
   const cartSubtotal = cartItems.reduce(
@@ -200,4 +213,6 @@ function App() {
   )
 }
 
-export default App;
+export const Route = createFileRoute("/")({
+  component: App,
+})

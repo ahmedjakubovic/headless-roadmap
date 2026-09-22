@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Env / database
+.env
+*.db*
+
+# Prisma generated client
+generated/
+
+# TanStack Start build output
+.output/
+.tanstack/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +33,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+/generated/prisma
