@@ -126,3 +126,110 @@ Shopify integration, API fetching, TanStack Query, server functions, auth, **wir
 6. **Dev port changes** 5173 → 3000 (Start default).
 7. `routeTree.gen.ts` is generated; lint/gitignore handle it. Prisma Client v7 is generated to `generated/` (ESM-first `prisma-client` generator) — also gitignored.
 8. ESLint `react-refresh` rule may flag `export const Route` in route files — if so, we add `allowExportNames` or a routes-only override (kept out unless it actually fires).
+
+## 10. Execution findings (what actually happened)
+
+Deviations and surprises encountered while executing this plan — the most useful part for the next migration:
+
+1. **GitButler needed setup** — `but` refused until `but setup` was run (repo wasn't registered). That creates the `gitbutler/workspace` branch.
+2. **Prisma CLI `latest` is a pre-release** — confirmed at install time: pnpm reported `prisma 7.10.0 (8.0.0-rc.15 is available)`. Pinning `prisma@^7.10.0` was correct.
+3. **pnpm 10 blocks dependency build scripts** — `better-sqlite3` and `@prisma/engines` scripts are skipped unless allowlisted. The `pnpm.onlyBuiltDependencies` entry fixed it (both ran on install).
+4. **`prisma init` installs agent "skills" scaffolding** — it created `.claude/`, `.windsurf/`, `.agents/`, and `skills-lock.json`. These were removed; delete them (or ignore them) too.
+5. **ESLint fast-refresh rule can't be satisfied by `allowExportNames`** — `allowExportNames: ['Route']` did **not** silence `react-refresh/only-export-components`: when the only export is the non-component `Route` const, the plugin never detects a React export and flags the local route component. Turning the rule **off** for `src/routes/**` is the working fix.
+6. **`routeTree.gen.ts` must exist before typecheck** — `createFileRoute('/')` and the `./routeTree.gen` import don't typecheck until the tree is generated. Run `vite dev`/`vite build` once first; the generated file was committed so a fresh `typecheck` works.
+7. **Build output is `dist/`, not `.output/`** — this Vite-environments build emits `dist/client/*` + `dist/server/server.js`. `.output` is Nitro-only. `dist/server/server.js` is a **fetch-style handler, not a runnable server** (`node dist/server/server.js` exits immediately); `vite preview` is the documented local production preview. The original "drop `preview`" call was wrong and was corrected.
+8. **`dev.db` lands in the project root** (resolved relative to `prisma7.config.ts`), not in `prisma/`.
+9. **React Compiler babel pass works with Start** — no fallback to plain `viteReact()` needed; it's the slowest build hook but builds fine.
+10. **Runtime Prisma verified** — a throwaway `tsx` script did create/read/delete against SQLite successfully (adapter + generated ESM client work at runtime, not just types).
+11. **Environment, not migration:** port 3000 was already occupied, so Vite served on 3001.
+12. **Scope correction after review:** the first pass added a `Mod+K` hotkey and a 300 ms search debounce. Both were *new behavior*, not migration. They were reverted; Pacer and Hotkeys remain installed but unused, so the migrated app is behavior-identical to the original.
+
+## Appendix: reusable migration prompt
+
+Copy the block below into an agent to migrate another Vite + React + TS + Tailwind + shadcn/ui app to TanStack Start.
+
+```text
+Migrate this existing Vite + React + TypeScript ecommerce app to TanStack Start.
+
+CURRENT: Vite, React, TypeScript, Tailwind CSS, shadcn/ui, no TanStack Router yet,
+a Products page, ProductCard components, mock product data, existing React state/effects.
+
+TARGET: TanStack Start, TanStack Router, TanStack Pacer, TanStack Hotkeys, React,
+TypeScript, Tailwind CSS, shadcn/ui. Use the CURRENT stable versions and current
+recommended setup for every TanStack package.
+
+GOALS
+1. Replace the Vite SPA setup with the TanStack Start setup.
+2. Configure TanStack Router the current recommended Start way (file-based routes).
+3. Preserve existing React components and UI. 4. Preserve Tailwind CSS.
+5. Preserve shadcn/ui. 6. Keep the Products page working.
+7. Add TanStack Pacer (current recommended setup).
+8. Add TanStack Hotkeys (current recommended setup).
+9. Keep configuration minimal and idiomatic. 10. No unrelated refactors.
+
+CRITICAL: PRESERVE BEHAVIOR. Do NOT invent UX. If the original app had no keyboard
+shortcut or debounce, do NOT add one — install Pacer/Hotkeys but leave behavior
+unchanged. The result must be the same app, now running on Start.
+
+DO NOT implement: Shopify, API fetching, TanStack Query, server functions, auth,
+database-to-UI wiring, product detail/$productId routes, loaders, search params, cart.
+
+ALSO INCLUDE: Prisma + SQLite as a foundation only (installed, configured, schema +
+migration + generated client + a lib/prisma.ts singleton), NOT wired into the UI.
+
+PROCESS
+1. Inspect the repo first (package.json, vite.config, tsconfig, src layout, shadcn
+   import style, entry files).
+2. Fetch current docs before coding (do not trust old examples):
+   - Start build-from-scratch + routing + Tailwind v4 integration
+   - Pacer install/quick-start, Hotkeys install/quick-start
+   - Prisma v7 SQLite quickstart
+3. Verify current stable versions with the npm registry (npm view <pkg> version,
+   dist-tags) — do NOT assume. Watch for `latest` pointing at an RC.
+4. Do the work on a separate branch.
+
+WHAT TO CHANGE
+- vite.config.ts: add tanstackStart() BEFORE the React plugin; keep tailwindcss().
+- package.json scripts: "dev": "vite dev", "build": "vite build", "typecheck": "tsc -b",
+  keep "preview": "vite preview".
+- Delete index.html, src/main.tsx, src/App.tsx.
+- Add src/router.tsx (getRouter -> createRouter({ routeTree, scrollRestoration: true })).
+- Add src/routes/__root.tsx: <html>/<head>/<body> shell with HeadContent, Outlet,
+  Scripts; head() carries the old index.html title/meta/favicon; import the global CSS
+  as `import appCss from '../index.css?url'` and add it to head().links.
+- Add src/routes/index.tsx: move the existing App component in with ONLY import paths
+  adjusted, exported via createFileRoute('/').
+- tsconfig: set verbatimModuleSyntax: false (Start recommendation).
+- Tailwind v4: keep @tailwindcss/vite; keep `@import "tailwindcss";` in the CSS.
+- .gitignore: add .env, *.db*, generated/, .output/, .tanstack/.
+- ESLint: ignore .output/.tanstack/generated/routeTree.gen.ts; turn OFF
+  react-refresh/only-export-components for src/routes/** (allowExportNames does NOT work).
+
+PRISMA + SQLITE (Prisma v7)
+- pnpm add @prisma/client@^7.10.0 @prisma/adapter-better-sqlite3@^7.10.0 dotenv
+- pnpm add -D prisma@^7.10.0 @types/better-sqlite3   (pin major 7: `latest` may be an RC)
+- If using pnpm 10, add pnpm.onlyBuiltDependencies for better-sqlite3/prisma/@prisma/*.
+- pnpm exec prisma init --datasource-provider sqlite --output ../generated/prisma
+  (this may also create .claude/.windsurf/.agents/skills-lock.json — delete them)
+- Add a Product model, then: pnpm exec prisma migrate dev --name init
+- Add src/lib/prisma.ts: PrismaBetterSqlite3 adapter + new PrismaClient({ adapter }).
+- Do NOT import prisma into any UI code.
+
+VERIFY (must all pass)
+- pnpm typecheck, pnpm lint, pnpm build
+- pnpm dev: Products page renders the same mock products, Tailwind styles and shadcn
+  components work, TanStack Router is wired, no console errors.
+- Prisma: schema validates, migration applied, and the client actually runs a query
+  (write a throwaway script and delete it afterwards).
+- Remove obsolete Vite/SPA artifacts (index.html, main.tsx, preview assumptions).
+
+CAVEATS TO EXPECT
+- Build output is dist/client + dist/server (not .output). dist/server/server.js is a
+  fetch handler, not a runnable server; use `vite preview` for a local prod preview.
+- routeTree.gen.ts must exist before typecheck — run build/dev once; commit it.
+- Prisma dev.db lands at the repo root (relative to the prisma config file).
+- React Compiler babel pass (if present) works with Start but is the slowest hook.
+
+FINALLY: report files changed, dependencies added/removed, config changes, run/build
+commands, and any caveats.
+```
