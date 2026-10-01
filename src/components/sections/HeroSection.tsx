@@ -1,4 +1,5 @@
 import { ArrowRight, Check, Sparkles, Truck } from "lucide-react"
+import { Link } from "@tanstack/react-router"
 import { Avatar, AvatarFallback } from "../ui/avatar"
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
@@ -22,10 +23,10 @@ function HeroSection() {
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Button size="lg" asChild>
-            <a href="#catalog">Explore collection <ArrowRight className="h-4 w-4" /></a>
+            <Link to="/collection">Explore collection <ArrowRight className="h-4 w-4" /></Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <a href="#notes">Read field notes</a>
+            <Link to="/notes">Read field notes</Link>
           </Button>
         </div>
         <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs font-medium uppercase tracking-wider text-zinc-500">

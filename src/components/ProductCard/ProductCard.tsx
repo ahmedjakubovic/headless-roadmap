@@ -1,12 +1,15 @@
 import { useState } from "react"
+import { Link } from "@tanstack/react-router"
 import { Heart, ShoppingBag, Star } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import { useCartStore } from "../../state/cart.store"
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
 import { cn } from "../../lib/utils"
 import QuantitySelector from "../QuantitySelector/QuantitySelector"
+import SaleCountdown from "../SaleCountdown/SaleCountdown"
 import VariantSelector from "../VariantSelector/VariantSelector"
 
 export type Product = {
@@ -19,6 +22,7 @@ export type Product = {
   rating: number
   reviews: number
   stock: number
+  sale?: boolean
   icon: LucideIcon
   accentClass: string
 }
@@ -26,16 +30,17 @@ export type Product = {
 type ProductCardProps = {
   product: Product
   isWishlisted: boolean
-  onAddToCart: (product: Product, quantity: number, variant: string) => void
   onWishlistToggle: () => void
 }
+
 
 function ProductCard({
   product,
   isWishlisted,
-  onAddToCart,
   onWishlistToggle,
 }: ProductCardProps) {
+  const add = useCartStore((state) => state.add)
+  const openCart = useCartStore((state) => state.open)
   const [quantity, setQuantity] = useState(1)
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0] ?? "")
   const [addedToCart, setAddedToCart] = useState(false)
@@ -46,7 +51,6 @@ function ProductCard({
     currency: "CHF",
     maximumFractionDigits: 0,
   })
-
   return (
     <Card className="group flex h-full min-w-0 flex-col overflow-hidden border-zinc-800 bg-zinc-900/80 transition-colors hover:border-zinc-600">
       <div className={cn("relative flex aspect-[1.35] items-center justify-center overflow-hidden border-b border-zinc-800", product.accentClass)}>
@@ -76,7 +80,13 @@ function ProductCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">{product.category}</p>
-            <CardTitle>{product.title}</CardTitle>
+            <Link
+              to="/products/$productId"
+              params={{ productId: product.id }}
+              className="hover:text-emerald-300"
+            >
+              <CardTitle>{product.title}</CardTitle>
+            </Link>
           </div>
           <p className="shrink-0 text-lg font-bold text-zinc-50">{formatPrice.format(product.price)}</p>
         </div>
@@ -86,6 +96,7 @@ function ProductCard({
           <span className="font-semibold text-zinc-200">{product.rating}</span>
           <span>({product.reviews} reviews)</span>
         </div>
+        {product.sale && <SaleCountdown />}
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col gap-5 px-5 pb-5">
@@ -98,7 +109,7 @@ function ProductCard({
           <QuantitySelector quantity={quantity} onQuantityChange={setQuantity} />
           <span className="text-xs text-zinc-500">Ready in 1-2 days</span>
         </div>
-        <Button className="w-full" onClick={() => { onAddToCart(product, quantity, selectedVariant); setAddedToCart(true) }}>
+        <Button className="w-full" onClick={() => { add(product, quantity, selectedVariant); openCart(); setAddedToCart(true) }}>
           <ShoppingBag className="h-4 w-4" />
           {addedToCart ? "Added to kit" : "Add to kit"}
         </Button>

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Filter, LayoutGrid, Search, SlidersHorizontal } from "lucide-react"
 import ProductCard, { type Product } from "../ProductCard/ProductCard"
 import { Badge } from "../ui/badge"
@@ -16,52 +17,61 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 type CatalogSectionProps = {
   categories: readonly string[]
   products: Product[]
-  filteredProducts: Product[]
+  formatPrice: Intl.NumberFormat
+  searchTerm: string
+  onSearchTermChange: (searchTerm: string) => void
   activeCategory: string
   onActiveCategoryChange: (category: string) => void
-  searchTerm: string
-  onSearchTermChange: (value: string) => void
-  inStockOnly: boolean
-  onInStockOnlyChange: (value: boolean) => void
-  lowStockOnly: boolean
-  onLowStockOnlyChange: (value: boolean) => void
-  maxPrice: number[]
-  onMaxPriceChange: (value: number[]) => void
-  sortOrder: string
-  onSortOrderChange: (value: string) => void
-  expressShipping: boolean
-  onExpressShippingChange: (value: boolean) => void
-  wishlist: string[]
-  onAddToCart: (product: Product, quantity: number, variant: string) => void
-  onWishlistToggle: (productId: string) => void
-  onResetFilters: () => void
-  formatPrice: Intl.NumberFormat
 }
 
 function CatalogSection({
   categories,
   products,
-  filteredProducts,
-  activeCategory,
-  onActiveCategoryChange,
+  formatPrice,
   searchTerm,
   onSearchTermChange,
-  inStockOnly,
-  onInStockOnlyChange,
-  lowStockOnly,
-  onLowStockOnlyChange,
-  maxPrice,
-  onMaxPriceChange,
-  sortOrder,
-  onSortOrderChange,
-  expressShipping,
-  onExpressShippingChange,
-  wishlist,
-  onAddToCart,
-  onWishlistToggle,
-  onResetFilters,
-  formatPrice,
+  activeCategory,
+  onActiveCategoryChange,
 }: CatalogSectionProps) {
+  const [expressShipping, setExpressShipping] = useState(true)
+  const [inStockOnly, setInStockOnly] = useState(false)
+  const [lowStockOnly, setLowStockOnly] = useState(false)
+  const [maxPrice, setMaxPrice] = useState([349])
+  const [sortOrder, setSortOrder] = useState("featured")
+  const [wishlist, setWishlist] = useState<string[]>([])
+
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase()
+  const maxPriceValue = maxPrice[0] ?? 349
+  const filteredProducts = products
+    .filter((product) => product.title.toLowerCase().includes(normalizedSearchTerm))
+    .filter((product) => activeCategory === "All" || product.category === activeCategory)
+    .filter((product) => !inStockOnly || product.stock > 0)
+    .filter((product) => !lowStockOnly || product.stock <= 8)
+    .filter((product) => product.price <= maxPriceValue)
+    .sort((firstProduct, secondProduct) => {
+      if (sortOrder === "price-low") return firstProduct.price - secondProduct.price
+      if (sortOrder === "price-high") return secondProduct.price - firstProduct.price
+      if (sortOrder === "rating") return secondProduct.rating - firstProduct.rating
+      return secondProduct.reviews - firstProduct.reviews
+    })
+
+  function handleWishlistToggle(productId: string) {
+    setWishlist((currentWishlist) =>
+      currentWishlist.includes(productId)
+        ? currentWishlist.filter((id) => id !== productId)
+        : [...currentWishlist, productId],
+    )
+  }
+
+  function resetFilters() {
+    onSearchTermChange("")
+    onActiveCategoryChange("All")
+    setInStockOnly(false)
+    setLowStockOnly(false)
+    setMaxPrice([349])
+    setSortOrder("featured")
+  }
+
   return (
     <section id="catalog" className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[260px_1fr] lg:px-8 lg:py-24">
       <aside>
@@ -77,7 +87,7 @@ function CatalogSection({
             <div className="grid gap-3">
               <Label>Availability</Label>
               <label className="flex cursor-pointer items-center gap-3 text-sm text-zinc-300">
-                <Checkbox checked={inStockOnly} onCheckedChange={(checked) => onInStockOnlyChange(checked === true)} />
+                <Checkbox checked={inStockOnly} onCheckedChange={(checked) => setInStockOnly(checked === true)} />
                 Only show in-stock
               </label>
             </div>
@@ -93,7 +103,7 @@ function CatalogSection({
                 max={349}
                 step={1}
                 value={maxPrice}
-                onValueChange={onMaxPriceChange}
+                onValueChange={setMaxPrice}
                 aria-label="Maximum price"
               />
               <div className="flex justify-between text-[11px] text-zinc-600"><span>CHF 50</span><span>CHF 349</span></div>
@@ -101,7 +111,7 @@ function CatalogSection({
 
             <div className="grid gap-2">
               <Label htmlFor="sort-products">Sort by</Label>
-              <Select value={sortOrder} onValueChange={onSortOrderChange}>
+              <Select value={sortOrder} onValueChange={setSortOrder}>
                 <SelectTrigger id="sort-products"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="featured">Featured</SelectItem>
@@ -120,7 +130,7 @@ function CatalogSection({
               <Switch
                 id="express-shipping"
                 checked={expressShipping}
-                onCheckedChange={onExpressShippingChange}
+                onCheckedChange={setExpressShipping}
                 aria-label="Express dispatch"
               />
             </div>
@@ -139,11 +149,11 @@ function CatalogSection({
                     <p className="mt-1 text-xs text-zinc-500">Keep the collection tight.</p>
                   </div>
                   <label className="flex cursor-pointer items-center gap-3 text-sm text-zinc-300">
-                    <Checkbox checked={lowStockOnly} onCheckedChange={(checked) => onLowStockOnlyChange(checked === true)} />
+                    <Checkbox checked={lowStockOnly} onCheckedChange={(checked) => setLowStockOnly(checked === true)} />
                     Low stock only
                   </label>
                   <Separator />
-                  <Button variant="ghost" size="sm" className="justify-start" onClick={onResetFilters}>Reset all filters</Button>
+                  <Button variant="ghost" size="sm" className="justify-start" onClick={resetFilters}>Reset all filters</Button>
                 </div>
               </PopoverContent>
             </Popover>
@@ -196,8 +206,7 @@ function CatalogSection({
                       key={product.id}
                       product={product}
                       isWishlisted={wishlist.includes(product.id)}
-                      onAddToCart={onAddToCart}
-                      onWishlistToggle={() => onWishlistToggle(product.id)}
+                      onWishlistToggle={() => handleWishlistToggle(product.id)}
                     />
                   ))}
                 </div>
@@ -209,7 +218,7 @@ function CatalogSection({
                       <p className="font-semibold text-zinc-200">Keine Produkte gefunden.</p>
                       <p className="mt-1 text-sm text-zinc-500">Versuche einen anderen Suchbegriff.</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={onResetFilters}>Reset filters</Button>
+                    <Button variant="outline" size="sm" onClick={resetFilters}>Reset filters</Button>
                   </CardContent>
                 </Card>
               )}
