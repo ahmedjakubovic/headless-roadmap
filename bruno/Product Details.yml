@@ -1,0 +1,50 @@
+info:
+  name: Get Product Details
+  type: graphql
+  seq: 2
+
+graphql:
+  method: POST
+  url: https://demostore.mock.shop/api
+  body:
+    query: |-
+      query ProductDetails($handle: String!) {
+        product(handle: $handle) {
+          id
+          title
+          handle
+          description
+          productType
+          vendor
+          tags
+          images(first: 5) {
+            nodes {
+              url
+              altText
+            }
+          }
+          variants(first: 5) {
+            nodes {
+              id
+              title
+              availableForSale
+              price {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+    variables: |-
+      {
+        "handle": "slides"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

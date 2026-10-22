@@ -1,0 +1,33 @@
+info:
+  name: Get Products
+  type: graphql
+  seq: 1
+
+graphql:
+  method: POST
+  url: https://demostore.mock.shop/api
+  body:
+    query: |-
+      {
+        products(first: 5) {
+          nodes {
+            title
+            handle
+            productType
+            priceRange {
+              minVariantPrice {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

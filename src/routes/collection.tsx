@@ -1,10 +1,37 @@
+import { Headphones, Keyboard, Monitor, Mouse } from "lucide-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
+import type { Product } from "../components/ProductCard/ProductCard"
 import CatalogSection from "../components/sections/CatalogSection"
-import { categories, formatPrice, products } from "../data/products"
+import { categories, formatPrice } from "../data/products"
+import { useProducts, type ShopifyProduct } from "../hooks/useProducts"
 
 type CollectionSearch = {
   q?: string
   category?: string
+}
+
+const productIcons = [Keyboard, Mouse, Monitor, Headphones]
+const productAccents = [
+  "bg-emerald-400/10 text-emerald-300",
+  "bg-cyan-400/10 text-cyan-300",
+  "bg-amber-300/10 text-amber-200",
+  "bg-rose-400/10 text-rose-300",
+]
+
+function toCatalogProduct(product: ShopifyProduct, index: number): Product {
+  return {
+    id: product.handle,
+    title: product.title,
+    category: product.productType || "Hardware",
+    price: Number(product.priceRange.minVariantPrice.amount),
+    description: product.description,
+    variants: ["Standard"],
+    rating: 0,
+    reviews: 0,
+    stock: 10,
+    icon: productIcons[index % productIcons.length] ?? Keyboard,
+    accentClass: productAccents[index % productAccents.length] ?? productAccents[0],
+  }
 }
 
 export const Route = createFileRoute("/collection")({
@@ -18,7 +45,17 @@ export const Route = createFileRoute("/collection")({
 function CollectionPage() {
   const { q = "", category } = Route.useSearch()
   const navigate = Route.useNavigate()
+  const { products: storefrontProducts, loading, error } = useProducts()
   const activeCategory = categories.find((item) => item === category) ?? "All"
+  const products = storefrontProducts.map(toCatalogProduct)
+
+  if (loading) {
+    return <p className="p-16 text-center text-zinc-400">Produkte werden geladen …</p>
+  }
+
+  if (error) {
+    return <p className="p-16 text-center text-red-400">Fehler: {error}</p>
+  }
 
   return (
     <>

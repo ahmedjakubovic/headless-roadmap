@@ -33,7 +33,6 @@ type ProductCardProps = {
   onWishlistToggle: () => void
 }
 
-
 function ProductCard({
   product,
   isWishlisted,
